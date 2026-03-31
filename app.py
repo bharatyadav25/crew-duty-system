@@ -1,21 +1,24 @@
 import streamlit as st
 import pandas as pd
 import gspread
-import json
 from oauth2client.service_account import ServiceAccountCredentials
 
 # ---------- GOOGLE SHEETS CONNECT ----------
-scope = ["https://spreadsheets.google.com/feeds",
-         "https://www.googleapis.com/auth/drive"]
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
 
-creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+# ✅ Direct secrets dict use (NO json.loads)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(
+    st.secrets["GOOGLE_CREDENTIALS"], scope
+)
+
 client = gspread.authorize(creds)
-
 sheet = client.open("CrewData").sheet1
 
 # ---------- UI ----------
-st.title("🚆 Crew Night Duty System (Final Version)")
+st.title("🚆 Crew Night Duty System (Final)")
 
 uploaded_file = st.file_uploader("📤 Upload Excel File", type=["xlsx"])
 
@@ -51,7 +54,7 @@ if uploaded_file:
 
                 elif row['Action'] == 'SIGNOFF' and sign_on is not None:
                     records.append({
-                        'Crew Id': crew_id,
+                        'Crew Id': row['Crew Id'],
                         'Crew Name': crew_name,
                         'SignOn': sign_on,
                         'SignOff': row['DateTime']
@@ -66,7 +69,9 @@ if uploaded_file:
                 return True
             return not (sign_on.hour > 5 and sign_off.hour > 5)
 
-        duty_df['Night'] = duty_df.apply(lambda x: is_night(x['SignOn'], x['SignOff']), axis=1)
+        duty_df['Night'] = duty_df.apply(
+            lambda x: is_night(x['SignOn'], x['SignOff']), axis=1
+        )
 
         night_df = duty_df[duty_df['Night'] == True].copy()
         night_df['Date'] = night_df['SignOn'].dt.date
